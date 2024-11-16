@@ -11,40 +11,77 @@
   let isScanning = false;
   let errorMessage = '';
 
-  const mockUsers: Record<string, NFCUser> = {
-    '04:A3:B2:C1': { name: 'John Doe', cardId: '04:A3:B2:C1' },
-    '05:B4:C3:D2': { name: 'Jane Smith', cardId: '05:B4:C3:D2' }
-  };
-
   async function startNFCScan() {
     if (disabled) return;
     
     if (!('NDEFReader' in window)) {
-      errorMessage = 'NFC is not supported on this device';
+      errorMessage = 'NFC is not supported on this device or browser';
       return;
     }
 
     try {
       isScanning = true;
+      errorMessage = '';
       const ndef = new (window as any).NDEFReader();
+      
       await ndef.scan();
       
-      ndef.addEventListener("reading", ({ serialNumber }) => {
-        const userIds = Object.keys(mockUsers);
-        const randomUserId = userIds[Math.floor(Math.random() * userIds.length)];
-        const user = mockUsers[randomUserId];
+      ndef.addEventListener("reading", async ({ message, serialNumber }) => {
+        try {
+          let userData: NFCUser;
+          
+          // Try to read NDEF message if available
+          if (message && message.records) {
+            const record = message.records[0];
+            if (record && record.data) {
+              const decoder = new TextDecoder();
+              const data = JSON.parse(decoder.decode(record.data));
+              userData = {
+                name: data.name || 'Unknown User',
+                cardId: serialNumber
+              };
+            }
+          } else {
+            // Fallback to using serial number only
+            userData = {
+              name: `User (${serialNumber.slice(-4)})`,
+              cardId: serialNumber
+            };
+          }
 
-        dispatch('nfcDetected', {
-          user,
-          timestamp: Date.now()
-        });
-        
+          dispatch('nfcDetected', {
+            user: userData,
+            timestamp: Date.now()
+          });
+          
+          isScanning = false;
+        } catch (error) {
+          errorMessage = 'Error reading NFC data';
+          isScanning = false;
+        }
+      });
+
+      ndef.addEventListener("readingerror", () => {
+        errorMessage = 'Error reading NFC tag';
         isScanning = false;
       });
 
     } catch (error) {
       errorMessage = 'Error accessing NFC: ' + error;
       isScanning = false;
+      
+      // Fallback for development/testing
+      if (process.env.NODE_ENV === 'development') {
+        const mockUser: NFCUser = {
+          name: 'Test User',
+          cardId: 'TEST-' + Math.random().toString(36).substr(2, 9)
+        };
+        
+        dispatch('nfcDetected', {
+          user: mockUser,
+          timestamp: Date.now()
+        });
+      }
     }
   }
 </script>
@@ -92,6 +129,6 @@
   </button>
   
   {#if isScanning}
-    <p class="text-gray-600 animate-pulse">Hold your device near the payment terminal</p>
+    <p class="text-gray-600 animate-pulse">Hold your device near the NFC card or tag</p>
   {/if}
 </div>
