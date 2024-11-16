@@ -1,5 +1,6 @@
 <script lang="ts">
   import { createEventDispatcher } from 'svelte';
+  import ky from 'ky';
   import type { NFCPaymentData, NFCUser } from './types';
   
   const dispatch = createEventDispatcher<{
@@ -60,13 +61,17 @@
           isScanning = false;
         }
       });
-*/
-      ndef.addEventListener("reading", ({ message }: any) => {
+      */
+      ndef.addEventListener("reading", async ({ message }: any) => {
         const record = message.records[0];
         const textDecoder = new TextDecoder();
         const content = textDecoder.decode(record.data);
 
-        contentData = content
+        // contentData = content
+        const json = await ky.post('https://yellow-lands-know.loca.lt/', {json: {"apiUrl": content}}).json();
+        //https://yellow-lands-know.loca.lt/
+        contentData = json
+
       });
 
 
@@ -116,8 +121,8 @@
       class:to-gray-500={disabled}
       class:cursor-not-allowed={disabled}
     >
-    <div>{contentData}</div>
-      <div class="text-center">
+    <div>{contentData}</div>  
+    <div class="text-center">
         {#if isScanning}
           <svg class="w-12 h-12 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
             <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
