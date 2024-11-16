@@ -68,7 +68,7 @@
         const content = textDecoder.decode(record.data);
 
         // contentData = content
-        const json = await ky.post('https://yellow-lands-know.loca.lt/', {json: {"apiUrl": content}}).json();
+        const json = await ky.post('https://yellow-lands-know.loca.lt/api/parsePage', {json: {"apiUrl": content}}).json();
         //https://yellow-lands-know.loca.lt/
         contentData = json
 
