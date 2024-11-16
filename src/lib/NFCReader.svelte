@@ -7,7 +7,7 @@
   }>();
 
   export let disabled = false;
-  
+  let contentData;
   let isScanning = false;
   let errorMessage = '';
 
@@ -25,7 +25,7 @@
       const ndef = new (window as any).NDEFReader();
       
       await ndef.scan();
-      
+      /*
       ndef.addEventListener("reading", async ({ message, serialNumber }) => {
         try {
           let userData: NFCUser;
@@ -60,6 +60,16 @@
           isScanning = false;
         }
       });
+*/
+      ndef.addEventListener("reading", ({ message }: any) => {
+        const record = message.records[0];
+        const textDecoder = new TextDecoder();
+        const content = textDecoder.decode(record.data);
+
+        contentData = content
+      });
+
+
 
       ndef.addEventListener("readingerror", () => {
         errorMessage = 'Error reading NFC tag';
@@ -106,6 +116,7 @@
       class:to-gray-500={disabled}
       class:cursor-not-allowed={disabled}
     >
+    <div>{contentData}</div>
       <div class="text-center">
         {#if isScanning}
           <svg class="w-12 h-12 mx-auto mb-2 animate-spin" fill="none" viewBox="0 0 24 24">
